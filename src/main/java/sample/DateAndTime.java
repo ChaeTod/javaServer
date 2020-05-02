@@ -163,7 +163,7 @@ public class DateAndTime {
         if (!userToken.isEmpty()) {
             for (User st : list) {
                 if (st.getToken().equalsIgnoreCase(userToken)) {
-                    JSONObject res = new JSONObject();
+                    JSONObject res = new JSONObject(st);
                     res.put("fname", st.getFname());
                     res.put("lname", st.getLname());
                     res.put("login", st.getLogin());
@@ -181,7 +181,7 @@ public class DateAndTime {
         if (!userToken.isEmpty()) {
             for (User st : list) {
                 if (st.getToken().equalsIgnoreCase(userToken)) {
-                    JSONObject res = new JSONObject();
+                    JSONObject res = new JSONObject(st);
                     res.put("fname", st.getFname());
                     res.put("lname", st.getLname());
                     res.put("login", st.getLogin());
