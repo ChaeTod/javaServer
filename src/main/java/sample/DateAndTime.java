@@ -1,6 +1,8 @@
 package sample;
 
+import org.mindrot.jbcrypt.BCrypt;
 import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.support.SimpleTriggerContext;
 import org.springframework.web.bind.annotation.*;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -26,7 +28,7 @@ public class DateAndTime {
     public ResponseEntity<String> getTime(@RequestParam(value = "login") String userLogin) {
         if (!userLogin.isEmpty()) {
             for (User st : list) {
-                if (st.getLogin().equals(userLogin)) {
+                if (st.getLogin().equalsIgnoreCase(userLogin)) {
                     SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
                     Date date = new Date();
                     return ResponseEntity.status(201).body(formatter.format(date));
@@ -42,7 +44,7 @@ public class DateAndTime {
     public ResponseEntity<String> getTimeHour(@RequestParam(value = "login") String userLogin) {
         if (!userLogin.isEmpty()) {
             for (User st : list) {
-                if (st.getLogin().equals(userLogin)) {
+                if (st.getLogin().equalsIgnoreCase(userLogin)) {
                     SimpleDateFormat formatter = new SimpleDateFormat("HH");
                     Date date = new Date();
                     return ResponseEntity.status(201).body(formatter.format(date));
@@ -118,6 +120,11 @@ public class DateAndTime {
             res.put("fname", obj.getString("fname"));
             res.put("lname", obj.getString("lname"));
             res.put("login", obj.getString("login"));
+            for (User st : list) {
+                if (st.getLogin().equalsIgnoreCase(obj.getString("login"))) {
+                    st.setToken(BCrypt.hashpw(obj.getString("password"), BCrypt.gensalt(12)));
+                }
+            }
             return ResponseEntity.status(201).body(res.toString());
         } else {
             JSONObject res = new JSONObject();
@@ -132,9 +139,62 @@ public class DateAndTime {
                 return true;
         }
         return false;
-
     }
 
+    private String findPassword(String password) {
+        for (User user : list) {
+            if (user.getPassword().equalsIgnoreCase(password))
+                return user.getPassword();
+        }
+        return "Haven't find any match!";
+    }
+
+    /*
+        public void makeToken(){
+            ResponseEntity<String> getTimeHour(@RequestParam(value = "login") String userLogin) {
+                if (!userLogin.isEmpty()) {
+                    for (User st : list) {
+                        if (st.getLogin().equalsIgnoreCase(userLogin)) {
+            BCrypt.hashpw("tajneheslo", BCrypt.gensalt(12));
+        }
+    */
+    @RequestMapping(method = RequestMethod.POST, value = "/users/rembrand")
+    public ResponseEntity<String> getUserRembrand(@RequestParam(value = "token") String userToken) {
+        if (!userToken.isEmpty()) {
+            for (User st : list) {
+                if (st.getToken().equalsIgnoreCase(userToken)) {
+                    JSONObject res = new JSONObject();
+                    res.put("fname", st.getFname());
+                    res.put("lname", st.getLname());
+                    res.put("login", st.getLogin());
+                    return ResponseEntity.status(200).body(res.toString());
+                }
+            }
+            return ResponseEntity.status(401).body("Error! User is supposed to be signed up first!");
+        } else {
+            return ResponseEntity.status(401).body("Error! User's token is empty!");
+        }
+    }
+
+    @RequestMapping(method = RequestMethod.POST, value = "/users")
+    public ResponseEntity<String> getUsers(@RequestParam(value = "token") String userToken) {
+        if (!userToken.isEmpty()) {
+            for (User st : list) {
+                if (st.getToken().equalsIgnoreCase(userToken)) {
+                    JSONObject res = new JSONObject();
+                    res.put("fname", st.getFname());
+                    res.put("lname", st.getLname());
+                    res.put("login", st.getLogin());
+                    return ResponseEntity.status(200).body(res.toString());
+                }
+            }
+            return ResponseEntity.status(401).body("Error! User is supposed to be signed up first!");
+        } else {
+            return ResponseEntity.status(401).body("Error! User's token is empty!");
+        }
+    }
+
+    /*
     private boolean findPassword(String password) {
         for (User user : list) {
             if (user.getPassword().equalsIgnoreCase(password))
@@ -150,7 +210,7 @@ public class DateAndTime {
         }
         return null;
     }
-
+*/
 
     @RequestMapping(method = RequestMethod.POST, value = "/logout")
     public ResponseEntity<String> parseJSON(@RequestBody String data) {
