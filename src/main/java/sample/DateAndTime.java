@@ -2,6 +2,7 @@ package sample;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.mindrot.jbcrypt.BCrypt;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.json.JSONObject;
@@ -32,17 +33,17 @@ public class DateAndTime {
                     JSONObject res = new JSONObject();
                     SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
                     Date date = new Date();
-                    res.put("Time",formatter.format(date));
-                    return ResponseEntity.status(201).body(res.toString());
+                    res.put("Time", formatter.format(date));
+                    return ResponseEntity.status(201).body(res.toString()));
                 }
             }
             JSONObject res = new JSONObject();
             res.put("Error!", "User is supposed to be signed up first!");
-            return ResponseEntity.status(401).body(res.toString());
+            return ResponseEntity.status(400).body(res.toString());
         } else {
             JSONObject res = new JSONObject();
             res.put("Error!", "User's login is empty!");
-            return ResponseEntity.status(401).body(res.toString());
+            return ResponseEntity.status(400).body(res.toString());
         }
     }
 
@@ -55,16 +56,16 @@ public class DateAndTime {
                     SimpleDateFormat formatter = new SimpleDateFormat("HH");
                     Date date = new Date();
                     res.put("Time in hours", formatter.format(date));
-                    return ResponseEntity.status(201).body(res.toString());
+                    return ResponseEntity.status(201).contentType(MediaType.APPLICATION_JSON).body(res.toString());
                 }
             }
             JSONObject res = new JSONObject();
             res.put("Error!", "User is supposed to be signed up first!");
-            return ResponseEntity.status(401).body(res.toString());
+            return ResponseEntity.status(400).body(res.toString());
         } else {
             JSONObject res = new JSONObject();
             res.put("Error!", "User's login is empty!");
-            return ResponseEntity.status(401).body(res.toString());
+            return ResponseEntity.status(400).body(res.toString());
         }
     }
 
@@ -133,10 +134,10 @@ public class DateAndTime {
                 //myList.add(logList.toString());
                 System.out.println(logList);
 
-                return ResponseEntity.status(200).body(res.toString());
+                return ResponseEntity.status(201).body(res.toString());
             } else {
                 res.put("Error!", "Invalid login or password!");
-                return ResponseEntity.status(401).body(res.toString());
+                return ResponseEntity.status(400).body(res.toString());
             }
 
         } else {
@@ -225,12 +226,12 @@ public class DateAndTime {
                     res.put("fname", user.getFname());
                     res.put("lname", user.getLname());
                     res.put("login", user.getLogin());
-                    return ResponseEntity.status(200).body(res.toString());
+                    return ResponseEntity.status(201).body(res.toString());
                 }
             }
-            return ResponseEntity.status(401).body("Error! User is supposed to be signed up first!");
+            return ResponseEntity.status(400).body("Error! User is supposed to be signed up first!");
         } else {
-            return ResponseEntity.status(401).body("Error! User's token or login is empty!");
+            return ResponseEntity.status(400).body("Error! User's token or login is empty!");
         }
     }
 
@@ -243,16 +244,16 @@ public class DateAndTime {
                     res.put("fname", user.getFname());
                     res.put("lname", user.getLname());
                     res.put("login", user.getLogin());
-                    return ResponseEntity.status(200).body(res.toString());
+                    return ResponseEntity.status(201).body(res.toString());
                 }
             }
             JSONObject res = new JSONObject();
             res.put("Error!", "User is supposed to be signed up first!");
-            return ResponseEntity.status(401).body(res.toString());
+            return ResponseEntity.status(400).body(res.toString());
         } else {
             JSONObject res = new JSONObject();
             res.put("Error!", "User's token is empty!");
-            return ResponseEntity.status(401).body(res.toString());
+            return ResponseEntity.status(400).body(res.toString());
         }
     }
 
@@ -271,12 +272,12 @@ public class DateAndTime {
             System.out.println(logList);
 
             user.setToken(null);
-            return ResponseEntity.status(200).body("User has logged out.");
+            return ResponseEntity.status(201).body("User has logged out.");
         }
 
         JSONObject res = new JSONObject();
         res.put("Error!", "Incorrect login or token!");
-        return ResponseEntity.status(401).body(res.toString());
+        return ResponseEntity.status(400).body(res.toString());
     }
 
     @RequestMapping(method = RequestMethod.POST, value = "/log")
@@ -285,33 +286,90 @@ public class DateAndTime {
             JSONObject objj = new JSONObject(data);
             JSONObject full = new JSONObject();
             for (User user : list) {
-                if (user != null && user.getLogin().equals(objj.getString("login")) /*&& user.getToken() != null && user.getToken().equals(userToken)*/) {
-                    //List<String> result = new ArrayList<String>();
+                if (user != null && user.getLogin().equals(objj.getString("login")) && user.getToken() != null && user.getToken().equals(userToken)) {
                     int i = 0;
                     for (String st : logList) {
                         //JSONObject res = new JSONObject(st);
                         //if (user != null && user.getLogin().equals(objj.getString("login")) && user.getToken() != null && user.getToken().equals(userToken)) {
-                            System.out.println(st);
-                            //result.add(st);
-                            full.put(String.valueOf(i), st);
-                            i++;
+                        System.out.println(st);
+                        full.put(String.valueOf(i), st);
+                        i++;
                     }
                     System.out.println(" ");
-                return ResponseEntity.status(200).body(full.toString());
+                    return ResponseEntity.status(201).body(full.toString());
                 }
             }
             JSONObject res = new JSONObject();
             res.put("Error!", "User hasn't been found!");
-            return ResponseEntity.status(401).body(res.toString());
+            return ResponseEntity.status(400).body(res.toString());
         } else {
             JSONObject res = new JSONObject();
             res.put("Error!", "User's login is empty!");
-            return ResponseEntity.status(401).body(res.toString());
+            return ResponseEntity.status(400).body(res.toString());
+        }
+    }
+
+    @RequestMapping(method = RequestMethod.POST, value = "/messages/new")
+    public ResponseEntity<String> makeMessages(@RequestBody String data, @RequestParam(value = "token") String userToken) {
+        JSONObject objj = new JSONObject(data);
+        if (objj.has("from") && objj.has("to") && objj.has("message")) {
+            for (User user : list) {
+                if (user != null && user.getToken() != null && user.getToken().equals(userToken)) {
+                    JSONObject message = new JSONObject();
+                    message.put("From", objj.getString("from"));
+                    message.put("To", objj.getString("to"));
+                    message.put("Message", objj.getString("message"));
+                    message.put("When", getTime(user.getToken()));
+                    messages.add(message.toString());
+                    return ResponseEntity.status(201).body(message.toString());
+                }
+            }
+            JSONObject res = new JSONObject();
+            res.put("Error!", "User hasn't been found!");
+            return ResponseEntity.status(400).body(res.toString());
+
+        } else {
+            JSONObject res = new JSONObject();
+            res.put("Error!", "Something from inputs values is missing!");
+            return ResponseEntity.status(400).body(res.toString());
+        }
+    }
+
+    @RequestMapping(method = RequestMethod.POST, value = "/messages")
+    public ResponseEntity<String> showMessages(@RequestBody String data, @RequestParam(value = "token") String userToken) {
+        if (!data.isEmpty()) {
+            JSONObject objj = new JSONObject(data);
+            JSONObject full = new JSONObject();
+            for (User user : list) {
+                if (user != null && user.getLogin().equals(objj.getString("login")) && user.getToken() != null && user.getToken().equals(userToken)) {
+                    int i = 0;
+                    for (String st : messages) {
+                        JSONObject res = new JSONObject(st);
+                        //if (user != null && user.getLogin().equals(objj.getString("login")) && user.getToken() != null && user.getToken().equals(userToken)) {
+                        System.out.println(st);
+                        full.put("Message " + String.valueOf(i), res.getString("Message"));
+                        full.put("From", res.getString("From"));
+                        full.put("To", res.getString("To"));
+                        full.put("Time", res.getString("When"));
+                        i++;
+                    }
+                    System.out.println(" ");
+                    return ResponseEntity.status(201).body(full.toString());
+                }
+            }
+            JSONObject res = new JSONObject();
+            res.put("Error!", "User hasn't been found!");
+            return ResponseEntity.status(400).body(res.toString());
+        } else {
+            JSONObject res = new JSONObject();
+            res.put("Error!", "User's login is empty!");
+            return ResponseEntity.status(400).body(res.toString());
         }
     }
 
     @RequestMapping(method = RequestMethod.POST, value = "/changepassword")
-    public ResponseEntity<String> changePass(@RequestBody String data, @RequestParam(value = "token") String userToken) {
+    public ResponseEntity<String> changePass(@RequestBody String data, @RequestParam(value = "token") String
+            userToken) {
         JSONObject obj = new JSONObject(data);
         if (!data.isEmpty()) {
             for (User user : list) {
@@ -323,10 +381,10 @@ public class DateAndTime {
             }
             JSONObject res = new JSONObject();
             res.put("Error!", "Bad inputs!");
-            return ResponseEntity.status(401).body(res.toString());
+            return ResponseEntity.status(400).body(res.toString());
         }
         JSONObject res = new JSONObject();
         res.put("Error!", "You need to input a login, an old password and a new password!");
-        return ResponseEntity.status(401).body(res.toString());
+        return ResponseEntity.status(400).body(res.toString());
     }
 }
