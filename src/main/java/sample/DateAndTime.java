@@ -16,6 +16,7 @@ public class DateAndTime {
 
     List<User> list = new ArrayList<User>();
     List<String> logList = new ArrayList<String>();
+    List<String> messages = new ArrayList<String>();
 
     public DateAndTime() {
         list.add(new User("Roman", "Simko", "roman", "heslo"));
@@ -31,7 +32,7 @@ public class DateAndTime {
                     JSONObject res = new JSONObject();
                     SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
                     Date date = new Date();
-                    res.put("Time", formatter.format(date));
+                    res.put("Time",formatter.format(date));
                     return ResponseEntity.status(201).body(res.toString());
                 }
             }
@@ -127,7 +128,7 @@ public class DateAndTime {
                 log.put("User", "Logged into the system");
                 log.put("UserLogin", res.getString("login"));
                 log.put("fname", res.getString("fname"));
-                log.put("Time", getTime(res.getString("token")));
+                log.put("When", getTime(res.getString("token")));
                 logList.add(log.toString());
                 //myList.add(logList.toString());
                 System.out.println(logList);
@@ -265,7 +266,7 @@ public class DateAndTime {
             log.put("User", "Logged out from the system");
             log.put("UserLogin", user.getLogin());
             log.put("fname", user.getFname());
-            log.put("Time", getTime(user.getToken()));
+            log.put("When", getTime(user.getToken()));
             logList.add(log.toString());
             System.out.println(logList);
 
@@ -282,31 +283,22 @@ public class DateAndTime {
     public ResponseEntity<String> showLog(@RequestBody String data, @RequestParam(value = "token") String userToken) {
         if (!data.isEmpty()) {
             JSONObject objj = new JSONObject(data);
-            //obj.put("1", logList);
-            //List<String> cache = new ArrayList<String>();
-            int i = 0;
+            JSONObject full = new JSONObject();
             for (User user : list) {
-                //if (user != null && user.getLogin().equals(objj.getString("login")) /*&& user.getToken() != null && user.getToken().equals(userToken)*/) {
-                    List<String> result = new ArrayList<String>();
-                    //JSONObject res = new JSONObject();
-                    //res.put("User", obj.length());
+                if (user != null && user.getLogin().equals(objj.getString("login")) /*&& user.getToken() != null && user.getToken().equals(userToken)*/) {
+                    //List<String> result = new ArrayList<String>();
+                    int i = 0;
                     for (String st : logList) {
-                        JSONObject res = new JSONObject(st);
-                        if (user != null && user.getLogin().equals(objj.getString("login"))) {
+                        //JSONObject res = new JSONObject(st);
+                        //if (user != null && user.getLogin().equals(objj.getString("login")) && user.getToken() != null && user.getToken().equals(userToken)) {
                             System.out.println(st);
-                            result.add(st);
-                            res.put(String.valueOf(i), st);
+                            //result.add(st);
+                            full.put(String.valueOf(i), st);
                             i++;
-                        }
-                        /*
-                        res.put("Action", obj.getString("User"));
-                        res.put("Login", obj.getString("UserLogin"));
-                        res.put("fname", obj.getString("fname"));
-                        res.put("Time", obj.getString("Time"));
-                         */
-                        return ResponseEntity.status(200).body(res.toString());
                     }
-                //}
+                    System.out.println(" ");
+                return ResponseEntity.status(200).body(full.toString());
+                }
             }
             JSONObject res = new JSONObject();
             res.put("Error!", "User hasn't been found!");
