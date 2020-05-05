@@ -107,12 +107,11 @@ public class DateAndTime {
                 return ResponseEntity.status(400).body(res.toString());
             }
 
-            if (findLogin(obj.getString("login")) && checkUserPass(obj.getString("login"), obj.getString("password"))) {  // heslo aj login su OK
+            if (findLogin(obj.getString("login")) && checkUserPass(obj.getString("login"), obj.getString("password"))) {
                 //User loggedUser = getUser(obj.getString("login"));
                 User user = getInfo(obj.getString("login"));
 
                 if (user == null) {
-                    // tento riadok by sa nemal nikdy vykonat, osetrene kvoli jave
                     return ResponseEntity.status(400).body("{}");
                 }
 
@@ -262,16 +261,15 @@ public class DateAndTime {
         User user = getInfo(obj.getString("login"));
 
         if (user != null && user.getToken() != null && user.getToken().equals(userToken)) {
-            user.setToken(null);
-
             JSONObject log = new JSONObject();
             log.put("User", "Logged out from the system");
-            log.put("UserLogin", obj.getString("login"));
-            //log.put("fname", obj.getString(user.getFname()));
-            log.put("Time", getTime(obj.getString("token")));
+            log.put("UserLogin", user.getLogin());
+            log.put("fname", user.getFname());
+            log.put("Time", getTime(user.getToken()));
             logList.add(log.toString());
             System.out.println(logList);
 
+            user.setToken(null);
             return ResponseEntity.status(200).body("User has logged out.");
         }
 
@@ -286,19 +284,29 @@ public class DateAndTime {
             JSONObject objj = new JSONObject(data);
             //obj.put("1", logList);
             //List<String> cache = new ArrayList<String>();
+            int i = 0;
             for (User user : list) {
-                if (user != null && user.getLogin().equals(objj.getString("login")) /*&& user.getToken() != null && user.getToken().equals(userToken)*/) {
-                    JSONObject res = new JSONObject();
+                //if (user != null && user.getLogin().equals(objj.getString("login")) /*&& user.getToken() != null && user.getToken().equals(userToken)*/) {
+                    List<String> result = new ArrayList<String>();
+                    //JSONObject res = new JSONObject();
                     //res.put("User", obj.length());
                     for (String st : logList) {
-                        JSONObject obj = new JSONObject(st);
+                        JSONObject res = new JSONObject(st);
+                        if (user != null && user.getLogin().equals(objj.getString("login"))) {
+                            System.out.println(st);
+                            result.add(st);
+                            res.put(String.valueOf(i), st);
+                            i++;
+                        }
+                        /*
                         res.put("Action", obj.getString("User"));
                         res.put("Login", obj.getString("UserLogin"));
                         res.put("fname", obj.getString("fname"));
                         res.put("Time", obj.getString("Time"));
+                         */
                         return ResponseEntity.status(200).body(res.toString());
                     }
-                }
+                //}
             }
             JSONObject res = new JSONObject();
             res.put("Error!", "User hasn't been found!");
