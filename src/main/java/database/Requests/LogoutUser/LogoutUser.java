@@ -22,11 +22,11 @@ public class LogoutUser {
         checkQuery.append("login", login);
         checkQuery.append("token", token);
 
-        FindIterable<Document> doc = connector.getMongoCollection().find(checkQuery);
+        FindIterable<Document> res = connector.getMongoCollection().find(checkQuery);
 
         User user = FindUser.getUser(login);
-        if (FindUser.findLogin(login) && CheckToken.checkToken(token))
-            if (user.getLogin().equals(login) && doc.iterator().hasNext()) {
+        if (FindUser.findLogin(login) && CheckToken.checkToken(token))  // Patrik's variant. Temporary, need to be updated in future.
+            if (user.getLogin().equals(login) && res.iterator().hasNext()) {
                 connector.getMongoCollection().updateOne(obj, new BasicDBObject("$unset", new BasicDBObject("token", token)));
                 user.setToken(null);
                 connector.getMongoConnector().close();
