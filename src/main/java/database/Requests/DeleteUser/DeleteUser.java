@@ -1,0 +1,35 @@
+package database.Requests.DeleteUser;
+
+import com.mongodb.BasicDBObject;
+import database.Connector.Connector;
+import com.mongodb.client.FindIterable;
+import database.Requests.CheckToken.CheckToken;
+import database.Requests.FindUser.FindUser;
+import org.bson.Document;
+
+public class DeleteUser {
+    public static boolean deleteUser(String login, String token) {
+
+        Connector connector = new Connector();
+        connector.getMongoConnector();
+        connector.getMongoDatabase();
+
+        BasicDBObject obj = new BasicDBObject();
+        obj.put("login", login);
+        obj.put("token", token);
+        FindIterable cursor = connector.getMongoCollection().find(obj);
+
+        if (FindUser.findLogin(login) && CheckToken.checkToken(token)) {
+            if (cursor.iterator().hasNext()) {
+                connector.getMongoCollection().deleteOne(obj);
+            } else {
+                connector.getMongoConnector().close();
+                return false;
+            }
+            connector.getMongoConnector().close();
+            return true;
+        }
+        connector.getMongoConnector().close();
+        return false;
+    }
+}

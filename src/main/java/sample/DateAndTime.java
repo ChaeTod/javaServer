@@ -1,3 +1,4 @@
+/* OLD RestController
 package sample;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -34,7 +35,7 @@ public class DateAndTime {
                     SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
                     Date date = new Date();
                     res.put("Time", formatter.format(date));
-                    return ResponseEntity.status(201).body(res.toString()));
+                    return ResponseEntity.status(201).body(res.toString());
                 }
             }
             JSONObject res = new JSONObject();
@@ -149,7 +150,6 @@ public class DateAndTime {
 
     private String generateToken() {
         int length = 27;
-        //System.out.println(generatedString);
         return RandomStringUtils.random(length, true, true); // Generate random string with Apache Commons Lang. Use letters and numbers - true.
     }
 
@@ -388,3 +388,4 @@ public class DateAndTime {
         return ResponseEntity.status(400).body(res.toString());
     }
 }
+*/
