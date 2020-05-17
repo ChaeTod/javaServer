@@ -2,13 +2,16 @@ package sample;
 
 import database.Logs.UserLog.MakeLog;
 import database.Requests.ChangePassword.ChangePassword;
+import database.Requests.CheckToken.CheckToken;
+import database.Requests.CreateMessage.CreateMessage;
 import database.Requests.DeleteUser.DeleteUser;
 import database.Requests.FindUser.FindUser;
+import database.Requests.GetMessage.GetMessage;
+import database.Requests.GetServerTime.GetServerTime;
 import database.Requests.GetToken.GetToken;
 import database.Requests.LoginUser.LoginUser;
 import database.Requests.LogoutUser.LogoutUser;
 import database.Requests.SignupUser.AddOneUser;
-import database.Logs.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.mindrot.jbcrypt.BCrypt;
@@ -25,6 +28,7 @@ public class UserController {
     Connector DB = new Connector();
 
     public UserController() {
+        DB.inputSettings();
         DB.getMongoConnector();  // Make a connection to local MongoDB
     }
 
@@ -57,18 +61,18 @@ public class UserController {
 
                 return ResponseEntity.status(200).contentType(MediaType.APPLICATION_JSON).body(res.toString());
             } else {
-                res.put("error", "Login already exists");
+                res.put("Error!", "Login already exists!");
                 return ResponseEntity.status(400).contentType(MediaType.APPLICATION_JSON).body(res.toString());
             }
         }
-        res.put("error", "Something is missing");
+        res.put("Error!", "Check the input - there should be no empty fields!");
         return ResponseEntity.status(400).contentType(MediaType.APPLICATION_JSON).body(res.toString());
     }
 
     @RequestMapping(method = RequestMethod.POST, value = "/login")
     public ResponseEntity<String> login(@RequestBody String credential) {
-
         JSONObject obj = new JSONObject(credential);
+
         if (obj.has("login") && obj.has("password")) {
             JSONObject res = new JSONObject();
             MakeLog localLog = new MakeLog();
@@ -76,6 +80,7 @@ public class UserController {
                 res.put("error", "Password and login are mandatory fields");
                 return ResponseEntity.status(400).contentType(MediaType.APPLICATION_JSON).body(res.toString());
             }
+
             User user = FindUser.getUser((obj.getString("login")));
 
             if (LoginUser.loginUser(obj.getString("login"), obj.getString("password"))) {
@@ -84,7 +89,6 @@ public class UserController {
                 res.put("lname", user.getLname());
                 res.put("login", user.getLogin());
                 res.put("token", GetToken.getToken(user.getLogin()));
-
                 localLog.log(obj.getString("login"), "login"); //write changes to the log
                 return ResponseEntity.status(200).contentType(MediaType.APPLICATION_JSON).body(res.toString());
             } else {
@@ -92,6 +96,7 @@ public class UserController {
                 return ResponseEntity.status(401).contentType(MediaType.APPLICATION_JSON).body(res.toString());
             }
         }
+
         JSONObject res = new JSONObject();
         res.put("error", "Missing login or password");
         return ResponseEntity.status(401).contentType(MediaType.APPLICATION_JSON).body(res.toString());
@@ -132,13 +137,12 @@ public class UserController {
                 return ResponseEntity.status(201).contentType(MediaType.APPLICATION_JSON).body(res.toString());
 
             } else {
-                res.put("error", "Wrong password or token");
+                res.put("Error!", "Wrong password or token!");
                 return ResponseEntity.status(401).contentType(MediaType.APPLICATION_JSON).body(res.toString());
             }
 
         } else {
-
-            res.put("error", "Wrong input");
+            res.put("Error!", "Wrong input!");
             return ResponseEntity.status(401).contentType(MediaType.APPLICATION_JSON).body(res.toString());
         }
     }
@@ -156,9 +160,79 @@ public class UserController {
         }
     }
 
+    @RequestMapping("/time")
+    public ResponseEntity<String> getTime(@RequestParam(value = "token") String userToken) {
+        if (userToken == null) {
+            return ResponseEntity.status(400).contentType(MediaType.APPLICATION_JSON).body("{\"Error!\",\"Bad request\"}");
+        }
+        if (CheckToken.checkToken(userToken)) {
+            JSONObject res = new JSONObject();
+            SimpleDateFormat formatter = new SimpleDateFormat("HH:mm:ss");
+            Date date = new Date();
+            res.put("Time", formatter.format(date));
+            return ResponseEntity.status(200).contentType(MediaType.APPLICATION_JSON).body(res.toString());
+        } else {
+            return ResponseEntity.status(401).contentType(MediaType.APPLICATION_JSON).body("{\"Error!\":\"Invalid token\"}");
+        }
+    }
+
+    @RequestMapping(method = RequestMethod.POST, value = "/message/new")
+    public ResponseEntity<String> sendMessage(@RequestBody String data, @RequestHeader(name = "Authorization") String userToken) {
+        JSONObject obj = new JSONObject(data);
+        User user = FindUser.getUser(obj.getString("from"));
+        JSONObject res = new JSONObject();
+
+        if (user != null && obj.has("from") && obj.has("to") && obj.has("message")) {
+            if (CreateMessage.newMessage(obj.getString("from"), obj.getString("to"), userToken, obj.getString("message"))) {
+                res.put("from", obj.getString("from"));
+                res.put("to", obj.getString("to"));
+                res.put("message", obj.getString("message"));
+                res.put("time", GetServerTime.getTime());
+                return ResponseEntity.status(201).contentType(MediaType.APPLICATION_JSON).body(res.toString());
+            } else {
+                res.put("Error!", "Some of the message details is missing!");
+                return ResponseEntity.status(400).contentType(MediaType.APPLICATION_JSON).body(res.toString());
+            }
+        } else {
+            res.put("Error!", "User hasn't been found, check the input!");
+        }
+        return ResponseEntity.status(400).contentType(MediaType.APPLICATION_JSON).body(res.toString());
+    }
+
+
+    @RequestMapping(value = "/message")
+    public ResponseEntity<String> getMessage(@RequestBody String data, @RequestHeader(name = "Authorization") String token, @RequestParam(required = false) String from) {
+        JSONObject obj = new JSONObject(data);
+        JSONObject ans = new JSONObject();
+        User user = FindUser.getUser(obj.getString("login"));
+
+        if (user != null && obj.has("login")) {
+            //JSONObject full = new JSONObject();
+            JSONArray full = new JSONArray();
+            for (String st : GetMessage.getMessage(obj.getString("login"), token)) {
+                JSONObject res = new JSONObject(st);
+                if (from == null) {
+                    full.put(res);
+                } else {
+                    if (FindUser.findLogin(from))
+                        if (res.getString("from").equals(from)) {
+                            full.put(res);
+                            return ResponseEntity.status(201).contentType(MediaType.APPLICATION_JSON).body(full.toString());
+                        } else {
+                            ans.put("Error!", "Sender was not found!");
+                            return ResponseEntity.status(400).contentType(MediaType.APPLICATION_JSON).body(ans.toString());
+                        }
+                    ans.put("Error!", "User hasn't been found, check the input!");
+                    return ResponseEntity.status(400).contentType(MediaType.APPLICATION_JSON).body(ans.toString());
+                }
+            }
+        }
+        ans.put("Error!", "User hasn't been found, check the input!");
+        return ResponseEntity.status(400).contentType(MediaType.APPLICATION_JSON).body(ans.toString());
+    }
+
     /* +++++++++++ */
     /* update user */
-    /* send message */
     /* +++++++++++ */
 
 
