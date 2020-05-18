@@ -30,7 +30,7 @@ public class GetMessage {
         List<String> messageList = new ArrayList<>();
         JSONObject obj = new JSONObject();
 
-        if (FindUser.findLogin(login) && CheckToken.checkToken(token)) {
+        if (FindUser.findByUserLogin(login) && CheckToken.checkToken(token)) {
             if (findUserByObject.iterator().hasNext()) {
                 for (Document p : findByFromField) {
                     obj.put("from", p.getString("from"));

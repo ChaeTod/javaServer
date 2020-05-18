@@ -4,12 +4,9 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.client.MongoCollection;
 import database.Connector.Connector;
 import database.Requests.FindUser.FindUser;
-import org.springframework.http.ResponseEntity;
 import sample.User;
 import org.bson.Document;
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Date;
 
 public class MakeLog {
@@ -22,10 +19,10 @@ public class MakeLog {
         BasicDBObject obj = new BasicDBObject();
         obj.append("login", login);
 
-        User user = FindUser.getUser(login);
+        User user = FindUser.getUserByLogin(login);
 
         assert user != null;
-        if (FindUser.findLogin(login) && user.getLogin().equals(login)) {
+        if (FindUser.findByUserLogin(login) && user.getLogin().equals(login)) {
 
             connector.getMongoCollection().insertOne(new Document().append("type", type).append("login", login)
                     .append("datetime", getTime()));

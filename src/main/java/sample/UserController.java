@@ -39,7 +39,7 @@ public class UserController {
         JSONObject obj = new JSONObject(data);
         JSONObject res = new JSONObject();
         if (!obj.getString("fname").isEmpty() && !obj.getString("lname").isEmpty() && !obj.getString("login").isEmpty() && !obj.getString("password").isEmpty()) { // vstup je ok, mame vsetky kluce
-            if (FindUser.findLogin(obj.getString("login"))) {
+            if (FindUser.findByUserLogin(obj.getString("login"))) {
                 res.put("Error!", "User with the same login already exists!");
                 return ResponseEntity.status(400).body(res.toString());
             }
@@ -81,7 +81,7 @@ public class UserController {
                 return ResponseEntity.status(400).contentType(MediaType.APPLICATION_JSON).body(res.toString());
             }
 
-            User user = FindUser.getUser((obj.getString("login")));
+            User user = FindUser.getUserByLogin((obj.getString("login")));
 
             if (LoginUser.loginUser(obj.getString("login"), obj.getString("password"))) {
                 assert user != null;
@@ -92,13 +92,13 @@ public class UserController {
                 localLog.log(obj.getString("login"), "login"); //write changes to the log
                 return ResponseEntity.status(200).contentType(MediaType.APPLICATION_JSON).body(res.toString());
             } else {
-                res.put("error", "Wrong login or password");
+                res.put("Error!", "Wrong login or password!");
                 return ResponseEntity.status(401).contentType(MediaType.APPLICATION_JSON).body(res.toString());
             }
         }
 
         JSONObject res = new JSONObject();
-        res.put("error", "Missing login or password");
+        res.put("Error!", "Missing login or password!");
         return ResponseEntity.status(401).contentType(MediaType.APPLICATION_JSON).body(res.toString());
     }
 
@@ -108,7 +108,7 @@ public class UserController {
         MakeLog localLog = new MakeLog();
 
         String login = obj.getString("login");
-        User user = FindUser.getUser(login);
+        User user = FindUser.getUserByLogin(login);
         if (user != null && LogoutUser.logoutUser(login, userToken)) {
             user.setToken(null);
             LogoutUser.logoutUser(obj.getString("login"), userToken);
@@ -126,7 +126,7 @@ public class UserController {
         JSONObject obj = new JSONObject(data);
         JSONObject res = new JSONObject();
         MakeLog localLog = new MakeLog();
-        User user = FindUser.getUser(obj.getString("login"));
+        User user = FindUser.getUserByLogin(obj.getString("login"));
 
         if (!data.isEmpty() && obj.has("login") && obj.has("newPassword") && obj.has("oldPassword") && user != null) {
             if (ChangePassword.changePassword(user.getPassword(), obj.getString("newPassword"),
@@ -150,7 +150,7 @@ public class UserController {
     @RequestMapping(method = RequestMethod.DELETE, value = "/delete/{login}")
     public ResponseEntity<String> deleteUser(@RequestHeader(name = "token") String userToken, @PathVariable String userLogin) {
         JSONObject res = new JSONObject();
-        User user = FindUser.getUser(userLogin);
+        User user = FindUser.getUserByLogin(userLogin);
 
         if (user != null && DeleteUser.deleteUser(user.getLogin(), userToken)) {
             return ResponseEntity.status(201).contentType(MediaType.APPLICATION_JSON).body(res.toString());
@@ -179,7 +179,7 @@ public class UserController {
     @RequestMapping(method = RequestMethod.POST, value = "/message/new")
     public ResponseEntity<String> sendMessage(@RequestBody String data, @RequestHeader(name = "Authorization") String userToken) {
         JSONObject obj = new JSONObject(data);
-        User user = FindUser.getUser(obj.getString("from"));
+        User user = FindUser.getUserByLogin(obj.getString("from"));
         JSONObject res = new JSONObject();
 
         if (user != null && obj.has("from") && obj.has("to") && obj.has("message")) {
@@ -204,7 +204,7 @@ public class UserController {
     public ResponseEntity<String> getMessage(@RequestBody String data, @RequestHeader(name = "Authorization") String token, @RequestParam(required = false) String from) {
         JSONObject obj = new JSONObject(data);
         JSONObject ans = new JSONObject();
-        User user = FindUser.getUser(obj.getString("login"));
+        User user = FindUser.getUserByLogin(obj.getString("login"));
 
         if (user != null && obj.has("login")) {
             //JSONObject full = new JSONObject();
@@ -214,7 +214,7 @@ public class UserController {
                 if (from == null) {
                     full.put(res);
                 } else {
-                    if (FindUser.findLogin(from))
+                    if (FindUser.findByUserLogin(from))
                         if (res.getString("from").equals(from)) {
                             full.put(res);
                             return ResponseEntity.status(201).contentType(MediaType.APPLICATION_JSON).body(full.toString());

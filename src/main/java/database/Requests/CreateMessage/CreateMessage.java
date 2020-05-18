@@ -19,7 +19,7 @@ public class CreateMessage {
         loginQuery.append("token", token);
         FindIterable<Document> findUserByObject = connector.getMongoDatabase().getCollection("Users").find(loginQuery);
 
-        if (FindUser.findLogin(from) && FindUser.findLogin(to) && CheckToken.checkToken(token)) {
+        if (FindUser.findByUserLogin(from) && FindUser.findByUserLogin(to) && CheckToken.checkToken(token)) {
             if (findUserByObject.iterator().hasNext()) {
                 connector.getMongoDatabase().getCollection("Messages").insertOne(new Document().append("from", from).append("to", to).append("message", message)
                         .append("time", GetServerTime.getTime()));

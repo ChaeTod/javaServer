@@ -18,7 +18,7 @@ public class GetToken {
         FindIterable search = connector.getMongoCollection().find(obj);
         Document res = new Document();
 
-        if (FindUser.findLogin(login) && search != null) {
+        if (FindUser.findByUserLogin(login) && search != null) {
             return res.getString("token");
         }
         return null;

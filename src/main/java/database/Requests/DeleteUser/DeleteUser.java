@@ -5,7 +5,6 @@ import database.Connector.Connector;
 import com.mongodb.client.FindIterable;
 import database.Requests.CheckToken.CheckToken;
 import database.Requests.FindUser.FindUser;
-import org.bson.Document;
 
 public class DeleteUser {
     public static boolean deleteUser(String login, String token) {
@@ -19,7 +18,7 @@ public class DeleteUser {
         obj.put("token", token);
         FindIterable cursor = connector.getMongoCollection().find(obj);
 
-        if (FindUser.findLogin(login) && CheckToken.checkToken(token)) {
+        if (FindUser.findByUserLogin(login) && CheckToken.checkToken(token)) {
             if (cursor.iterator().hasNext()) {
                 connector.getMongoCollection().deleteOne(obj);
             } else {

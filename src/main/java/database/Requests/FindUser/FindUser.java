@@ -4,18 +4,21 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.model.Filters;
 import database.Connector.Connector;
 import com.mongodb.BasicDBObject;
+import org.bson.BSONObject;
+import org.bson.BsonObjectId;
 import org.bson.conversions.Bson;
 import org.bson.Document;
+import org.json.JSONObject;
 import sample.User;
 
 public class FindUser {
-    public static boolean findLogin(String login) {
+    public static boolean findByUserLogin(String login) {
         Connector connector = new Connector();
         connector.getMongoConnector();
         connector.getMongoDatabase();
+        connector.getMongoCollection();
 
-        BasicDBObject obj = new BasicDBObject();
-        obj.put("login", login);
+        Document obj = new Document("login", login);
         FindIterable search = connector.getMongoCollection().find(obj);
 
         if (search != null) {
@@ -29,17 +32,18 @@ public class FindUser {
         }
     }
 
-    public static User getUser(String login) {
+    public static User getUserByLogin(String login) {
         Connector connector = new Connector();
         connector.getMongoConnector();
         connector.getMongoDatabase();
 
         Bson filter = Filters.eq("login", login);
-        Document myDoc = (Document) connector.getMongoCollection().find(filter).first();
+        //FindIterable findByUserLogin = connector.getMongoCollection().find(filter);
+        Document com = (Document) connector.getMongoCollection().find(filter).first();
 
-        if (findLogin(login) && myDoc != null) {
-                return new User(myDoc.getString("fname"), myDoc.getString("lname"),
-                        myDoc.getString("login"), myDoc.getString("password"));
+        if (findByUserLogin(login) && com != null) {
+            return new User(com.getString("fname"), com.getString("lname"),
+                    com.getString("login"), com.getString("password"));
         }
         connector.getMongoConnector().close();
         return null;

@@ -48,7 +48,7 @@ public class Connector {
     }
 
     public MongoDatabase getMongoDatabase(){
-        MongoDatabase database = getMongoConnector().getDatabase(DBname);
+        MongoDatabase database = getMongoConnector().getDatabase("Bank");
         return database;
     }
 
