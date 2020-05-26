@@ -12,12 +12,15 @@ public class CheckToken {
         BasicDBObject obj = new BasicDBObject();
         obj.append("token", token);
 
-        long count = connector.getMongoCollection().countDocuments(obj);
-        if (count > 0) {
+        long totalRecords = connector.getUserCollection().countDocuments(obj);
+        if (totalRecords > 0) {
+            System.out.println("Token has been found!");
             connector.getMongoConnector().close();
             return true;
+        } else {
+            System.out.println("That token hasn't been found!");
+            connector.getMongoConnector().close();
+            return false;
         }
-        connector.getMongoConnector().close();
-        return false;
     }
 }

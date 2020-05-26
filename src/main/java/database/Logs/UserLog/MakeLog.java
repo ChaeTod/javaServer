@@ -14,7 +14,7 @@ public class MakeLog {
         Connector connector = new Connector();
         connector.getMongoConnector();
         connector.getMongoDatabase();
-        MongoCollection<Document> collection_log = connector.getMongoDatabase().getCollection("Log");
+        //MongoCollection<Document> collection_log = connector.getMongoDatabase().getCollection("Log");
 
         BasicDBObject obj = new BasicDBObject();
         obj.append("login", login);
@@ -23,8 +23,7 @@ public class MakeLog {
 
         assert user != null;
         if (FindUser.findByUserLogin(login) && user.getLogin().equals(login)) {
-
-            connector.getMongoCollection().insertOne(new Document().append("type", type).append("login", login)
+            connector.getLogCollection().insertOne(new Document().append("type", type).append("login", login)
                     .append("datetime", getTime()));
             return true;
         }

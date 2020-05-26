@@ -2,6 +2,7 @@ package database.Requests.GetMessage;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Filters;
 import database.Connector.Connector;
 import database.Requests.CheckToken.CheckToken;
@@ -14,10 +15,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class GetMessage {
-    public static List<String> getMessage(String login, String token) {
-        Connector connector = new Connector();
-        connector.getMongoConnector();
-        connector.getMongoDatabase();
+    public static JSONObject getMessage(String login, String token) {
+        /*
+
 
         Bson bsonFilter = Filters.eq("from", login);
         FindIterable<Document> findByFromField = connector.getMongoDatabase().getCollection("Messages").find(bsonFilter);
@@ -42,5 +42,25 @@ public class GetMessage {
             }
         }
         return messageList;
+    }
+
+         */
+
+        Connector connector = new Connector();
+        connector.getMongoConnector();
+        connector.getMongoDatabase();
+
+        JSONObject messages = new JSONObject();
+        MongoCursor mongoCursor = connector.getMessageCollection().find().iterator();
+        int count = 0;
+        while (mongoCursor.hasNext()) {
+            Document doc = (Document) mongoCursor.next();
+            JSONObject object = new JSONObject(doc.toJson());
+            if (object.getString("from").equals(login) || object.getString("to").equals(login)) {
+                count++;
+                messages.put(String.valueOf(count), object);
+            }
+        }
+        return messages;
     }
 }

@@ -2,9 +2,17 @@ package database.Requests.GetToken;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.FindIterable;
+import com.mongodb.client.model.Filters;
 import database.Connector.Connector;
 import database.Requests.FindUser.FindUser;
+import org.bson.BsonDocument;
+import org.bson.BsonString;
 import org.bson.Document;
+import org.bson.conversions.Bson;
+import org.json.JSONObject;
+import sample.User;
+
+import java.util.Objects;
 
 public class GetToken {
     public static String getToken(String login) {
@@ -12,13 +20,12 @@ public class GetToken {
         connector.getMongoConnector();
         connector.getMongoDatabase();
 
-        BasicDBObject obj = new BasicDBObject();
-        obj.put("login", login);
+        Bson filter = Filters.eq("login", login);
+        Document res = (Document) connector.getUserCollection().find(filter).first();
+        long totalRecords = connector.getUserCollection().countDocuments(new BsonDocument("login", new BsonString(login)));
 
-        FindIterable search = connector.getMongoCollection().find(obj);
-        Document res = new Document();
-
-        if (FindUser.findByUserLogin(login) && search != null) {
+        if (FindUser.findByUserLogin(login) && totalRecords > 0) {
+            assert res != null;
             return res.getString("token");
         }
         return null;

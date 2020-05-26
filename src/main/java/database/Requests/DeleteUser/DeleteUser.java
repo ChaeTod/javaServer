@@ -16,11 +16,11 @@ public class DeleteUser {
         BasicDBObject obj = new BasicDBObject();
         obj.put("login", login);
         obj.put("token", token);
-        FindIterable cursor = connector.getMongoCollection().find(obj);
+        FindIterable cursor = connector.getUserCollection().find(obj);
 
         if (FindUser.findByUserLogin(login) && CheckToken.checkToken(token)) {
             if (cursor.iterator().hasNext()) {
-                connector.getMongoCollection().deleteOne(obj);
+                connector.getUserCollection().deleteOne(obj);
             } else {
                 connector.getMongoConnector().close();
                 return false;

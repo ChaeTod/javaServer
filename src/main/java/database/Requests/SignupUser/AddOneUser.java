@@ -10,15 +10,19 @@ public class AddOneUser {
         Connector connector = new Connector();
         connector.getMongoConnector();
         connector.getMongoDatabase();
-        connector.getMongoCollection();
+        connector.getUserCollection();
 
-        if (FindUser.findByUserLogin(login)) {
-            Document userInput = new Document("fname", fname).append("lname", lname).append("login", login).append("password", HashPassword.makeHash(password));
-            connector.getMongoCollection().insertOne(userInput);
-            connector.getMongoConnector().close();
+        if (!FindUser.findByUserLogin(login)) {
+            Document userInput = new Document();
+            userInput.append("fname", fname);
+            userInput.append("lname", lname);
+            userInput.append("login", login);
+            userInput.append("password", HashPassword.makeHash(password));
+            connector.getUserCollection().insertOne(userInput);
+            //connector.getMongoConnector().close();
             return true;
         } else {
-            connector.getMongoConnector().close();
+            //connector.getMongoConnector().close();
             return false;
         }
     }

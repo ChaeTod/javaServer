@@ -1,17 +1,23 @@
 package sample;
 
+import com.mongodb.util.JSON;
+import database.Logs.GetLog.GetLog;
 import database.Logs.UserLog.MakeLog;
 import database.Requests.ChangePassword.ChangePassword;
 import database.Requests.CheckToken.CheckToken;
 import database.Requests.CreateMessage.CreateMessage;
 import database.Requests.DeleteUser.DeleteUser;
 import database.Requests.FindUser.FindUser;
+import database.Requests.GenerateToken.GenerateToken;
 import database.Requests.GetMessage.GetMessage;
 import database.Requests.GetServerTime.GetServerTime;
 import database.Requests.GetToken.GetToken;
+import database.Requests.HashPassword.HashPassword;
 import database.Requests.LoginUser.LoginUser;
 import database.Requests.LogoutUser.LogoutUser;
 import database.Requests.SignupUser.AddOneUser;
+import database.Requests.UpdateUserName.UpdateUserName;
+import net.minidev.json.parser.ParseException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.mindrot.jbcrypt.BCrypt;
@@ -20,8 +26,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import database.Connector.Connector;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+
+import org.springframework.http.ResponseEntity;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Objects;
 
 @RestController
 public class UserController {
@@ -29,7 +41,8 @@ public class UserController {
 
     public UserController() {
         DB.inputSettings();
-        DB.getMongoConnector();  // Make a connection to local MongoDB
+        DB.getMongoConnector();
+        //DB.getMongoDatabase();// Make a connection to local MongoDB
     }
 
     @RequestMapping(method = RequestMethod.POST, value = "/signup")
@@ -50,10 +63,10 @@ public class UserController {
                 return ResponseEntity.status(400).body(res.toString());
             }
 
-            String hashPass = BCrypt.hashpw(obj.getString("password"), BCrypt.gensalt(12));
+            //String hashPass = BCrypt.hashpw(obj.getString("password"), BCrypt.gensalt(12));
+            String hashPass = HashPassword.makeHash(obj.getString("password"));
 
-            if (AddOneUser.addOneUser(obj.getString("fname"), obj.getString("lname"),
-                    obj.getString("login"), hashPass)) {
+            if (AddOneUser.addOneUser(obj.getString("fname"), obj.getString("lname"), obj.getString("login"), hashPass)) {
 
                 res.put("fname", obj.getString("fname"));
                 res.put("lname", obj.getString("lname"));
@@ -81,7 +94,7 @@ public class UserController {
                 return ResponseEntity.status(400).contentType(MediaType.APPLICATION_JSON).body(res.toString());
             }
 
-            User user = FindUser.getUserByLogin((obj.getString("login")));
+            User user = FindUser.getUserByLogin(obj.getString("login"));
 
             if (LoginUser.loginUser(obj.getString("login"), obj.getString("password"))) {
                 assert user != null;
@@ -102,8 +115,9 @@ public class UserController {
         return ResponseEntity.status(401).contentType(MediaType.APPLICATION_JSON).body(res.toString());
     }
 
+
     @RequestMapping(method = RequestMethod.POST, value = "/logout")
-    public ResponseEntity<String> logout(@RequestBody String data, @RequestHeader(name = "token") String userToken) {
+    public ResponseEntity<String> logout(@RequestBody String data, @RequestParam(value = "token") String userToken) {
         JSONObject obj = new JSONObject(data);
         MakeLog localLog = new MakeLog();
 
@@ -120,21 +134,21 @@ public class UserController {
         return ResponseEntity.status(401).contentType(MediaType.APPLICATION_JSON).body(res.toString());
     }
 
-    @RequestMapping(method = RequestMethod.POST, value = "/changePassword")
-    public ResponseEntity<String> changePassword(@RequestBody String data, @RequestHeader(name = "token") String userToken) {
+    @RequestMapping(method = RequestMethod.POST, value = "/changepassword")
+    public ResponseEntity<String> changePassword(@RequestBody String data, @RequestParam(value = "token") String userToken) {
 
         JSONObject obj = new JSONObject(data);
         JSONObject res = new JSONObject();
         MakeLog localLog = new MakeLog();
         User user = FindUser.getUserByLogin(obj.getString("login"));
 
-        if (!data.isEmpty() && obj.has("login") && obj.has("newPassword") && obj.has("oldPassword") && user != null) {
-            if (ChangePassword.changePassword(user.getPassword(), obj.getString("newPassword"),
-                    obj.getString("login"), userToken)) {
-
-                user.setPassword(obj.getString("newPassword"));
-                localLog.log(obj.getString("login"), "passwordChange");
-                return ResponseEntity.status(201).contentType(MediaType.APPLICATION_JSON).body(res.toString());
+        if (!data.isEmpty() && obj.has("login") && obj.has("newpassword") && obj.has("oldpassword") && user != null) {
+            if (ChangePassword.changePassword(user.getPassword(), obj.getString("newpassword"), obj.getString("login"), userToken)) {
+                //user.setPassword(obj.getString("newpassword"));
+                String hashPass = HashPassword.makeHash(obj.getString("newpassword"));
+                user.setPassword(hashPass);
+                localLog.log(obj.getString("login"), "Password Changing");
+                return ResponseEntity.status(201).contentType(MediaType.APPLICATION_JSON).body("Password changed!");
 
             } else {
                 res.put("Error!", "Wrong password or token!");
@@ -147,10 +161,13 @@ public class UserController {
         }
     }
 
-    @RequestMapping(method = RequestMethod.DELETE, value = "/delete/{login}")
-    public ResponseEntity<String> deleteUser(@RequestHeader(name = "token") String userToken, @PathVariable String userLogin) {
+    //@RequestMapping(method = RequestMethod.DELETE, value = "/delete/{login}")
+    //public ResponseEntity<String> deleteUser(@RequestHeader(name = "token") String userToken, @PathVariable String userLogin) {
+    @RequestMapping(method = RequestMethod.DELETE, value = "/delete")
+    public ResponseEntity<String> deleteUser(@RequestBody String data, @RequestParam(value = "token") String userToken) {
         JSONObject res = new JSONObject();
-        User user = FindUser.getUserByLogin(userLogin);
+        JSONObject obj = new JSONObject(data);
+        User user = FindUser.getUserByLogin(obj.getString("login"));
 
         if (user != null && DeleteUser.deleteUser(user.getLogin(), userToken)) {
             return ResponseEntity.status(201).contentType(MediaType.APPLICATION_JSON).body(res.toString());
@@ -176,6 +193,91 @@ public class UserController {
         }
     }
 
+    @RequestMapping("/time/hours")
+    public ResponseEntity<String> getTimeHours(@RequestParam(value = "token") String userToken) {
+        if (userToken == null) {
+            return ResponseEntity.status(400).contentType(MediaType.APPLICATION_JSON).body("{\"Error!\",\"Bad request\"}");
+        }
+        if (CheckToken.checkToken(userToken)) {
+            JSONObject res = new JSONObject();
+            SimpleDateFormat formatter = new SimpleDateFormat("HH");
+            Date date = new Date();
+            res.put("Time in hours", formatter.format(date));
+            return ResponseEntity.status(200).contentType(MediaType.APPLICATION_JSON).body(res.toString());
+        } else {
+            return ResponseEntity.status(401).contentType(MediaType.APPLICATION_JSON).body("{\"Error!\":\"Invalid token\"}");
+        }
+    }
+/*
+    @PatchMapping(value = "update/{login}")
+    public ResponseEntity<String> updateLogin(@RequestBody String data, @RequestHeader String token, @PathVariable String login) {
+        JSONObject obj = new JSONObject(data);
+        JSONObject res = new JSONObject();
+        if (CheckToken.checkToken(token)) {
+            if (obj.has("firstName")) {
+                //findInformation(login).setFname(obj.getString("firstName"));
+                UpdateUserName.updateFirstName(login, obj.getString("fname"));
+            }
+            if (obj.has("lastName")) {
+                //findInformation(login).setFname(obj.getString("lastName"));
+                UpdateUserName.updateLastName(login, obj.getString("lname"));
+            }
+            res.put("Success!", "Data has been changed!");
+            return ResponseEntity.status(201).contentType(MediaType.APPLICATION_JSON).body(res.toString());
+        } else {
+            res.put("Error!", "Token hasn't been found!");
+            return ResponseEntity.status(201).contentType(MediaType.APPLICATION_JSON).body(res.toString());
+        }
+    }
+*/
+    @RequestMapping(method = RequestMethod.POST, value = "/log")
+    public ResponseEntity showLog(@RequestBody String data, @RequestParam(value = "token") String userToken) {
+        JSONObject obj = new JSONObject(data);
+        JSONObject res = new JSONObject();
+        if (FindUser.findByUserLogin(obj.getString("login")) && CheckToken.checkToken(userToken)) {
+
+            return ResponseEntity.status(201).contentType(MediaType.APPLICATION_JSON).body(GetLog.getLog(obj.getString("login")));
+        }
+        res.put("Error!", "Token or login hasn't been found!");
+        return ResponseEntity.status(400).contentType(MediaType.APPLICATION_JSON).body(res.toString());
+    }
+
+    @RequestMapping(method = RequestMethod.POST, value = "/message/new")
+    public ResponseEntity<String> newMessage(@RequestBody String data, @RequestParam(value = "token") String userToken){
+        JSONObject obj = new JSONObject(data);
+        JSONObject res = new JSONObject();
+        if (CheckToken.checkToken(userToken) && FindUser.findByUserLogin(obj.getString("from")) && FindUser.findByUserLogin(obj.getString("to"))) {
+            CreateMessage.newMessage(obj.getString("from"), obj.getString("to"), obj.getString("message"));
+            res.put("Success!", "Message has been sent");
+            return ResponseEntity.status(201).contentType(MediaType.APPLICATION_JSON).body(res.toString());
+        } else {
+            res.put("Error!", "Message hasn't been sent! Check inputs!");
+            return ResponseEntity.status(201).contentType(MediaType.APPLICATION_JSON).body(res.toString());
+        }
+    }
+
+    @RequestMapping(method = RequestMethod.POST, value = "/messages")
+    public ResponseEntity<String> showMessages(@RequestBody String data, @RequestParam(value = "token") String userToken){
+        JSONObject obj = new JSONObject(data);
+        JSONObject res = new JSONObject();
+        if (CheckToken.checkToken(userToken)) {
+            res = GetMessage.getMessage(obj.getString("login"), userToken);
+            return ResponseEntity.status(201).body(res.toString());
+        } else {
+            res.put("Error!", "Token or login hasn't been found!");
+            return ResponseEntity.status(400).contentType(MediaType.APPLICATION_JSON).body(res.toString());
+        }
+    }
+
+
+
+    /* +++++++++++ */
+    /* update user */
+    /* +++++++++++ */
+
+
+/*
+    /*
     @RequestMapping(method = RequestMethod.POST, value = "/message/new")
     public ResponseEntity<String> sendMessage(@RequestBody String data, @RequestHeader(name = "Authorization") String userToken) {
         JSONObject obj = new JSONObject(data);
@@ -198,8 +300,8 @@ public class UserController {
         }
         return ResponseEntity.status(400).contentType(MediaType.APPLICATION_JSON).body(res.toString());
     }
-
-
+*/
+/*
     @RequestMapping(value = "/message")
     public ResponseEntity<String> getMessage(@RequestBody String data, @RequestHeader(name = "Authorization") String token, @RequestParam(required = false) String from) {
         JSONObject obj = new JSONObject(data);
@@ -230,13 +332,26 @@ public class UserController {
         ans.put("Error!", "User hasn't been found, check the input!");
         return ResponseEntity.status(400).contentType(MediaType.APPLICATION_JSON).body(ans.toString());
     }
+*/
+    /*
+        @RequestMapping(method = RequestMethod.POST, value = "/users/{login}")
+        public ResponseEntity<String> getUserRembrand(@PathVariable String login, @RequestParam(value = "token") String userToken) {
+            if (!userToken.isEmpty()) {
+                for (User user : list) {
+                    if (user != null && user.getLogin().equalsIgnoreCase(login) && user.getToken() != null && user.getToken().equals(userToken)) {
+                        JSONObject res = new JSONObject(user);
+                        res.put("fname", user.getFname());
+                        res.put("lname", user.getLname());
+                        res.put("login", user.getLogin());
+                        return ResponseEntity.status(201).body(res.toString());
+                    }
+                }
+                return ResponseEntity.status(400).body("Error! User is supposed to be signed up first!");
+            } else {
+                return ResponseEntity.status(400).body("Error! User's token or login is empty!");
+            }
+        }
 
-    /* +++++++++++ */
-    /* update user */
-    /* +++++++++++ */
-
-
-/*
     @RequestMapping("/time")
     public ResponseEntity<String> getTime(@RequestParam(value = "token") String userToken) {
         if (!userToken.isEmpty()) {
@@ -301,6 +416,5 @@ public class UserController {
             return ResponseEntity.status(400).body(res.toString());
         }
     }
-
  */
 }

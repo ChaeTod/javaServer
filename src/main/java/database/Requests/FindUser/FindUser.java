@@ -1,27 +1,32 @@
 package database.Requests.FindUser;
 
 import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Filters;
 import database.Connector.Connector;
-import com.mongodb.BasicDBObject;
-import org.bson.BSONObject;
-import org.bson.BsonObjectId;
+import org.bson.BsonDocument;
+import org.bson.BsonString;
 import org.bson.conversions.Bson;
 import org.bson.Document;
 import org.json.JSONObject;
 import sample.User;
+
+import javax.print.Doc;
 
 public class FindUser {
     public static boolean findByUserLogin(String login) {
         Connector connector = new Connector();
         connector.getMongoConnector();
         connector.getMongoDatabase();
-        connector.getMongoCollection();
+        connector.getUserCollection();
 
-        Document obj = new Document("login", login);
-        FindIterable search = connector.getMongoCollection().find(obj);
-
-        if (search != null) {
+        //Document obj = new Document();
+        //obj.append("login", login);
+        //FindIterable search = connector.getUserCollection().find(obj);
+        //MongoCollection collection = connector.getMongoDatabase().getCollection("Users");
+        long totalRecords = connector.getUserCollection().countDocuments(new BsonDocument("login", new BsonString(login)));
+        if (totalRecords > 0) {
             System.out.println("Login match found!");
             connector.getMongoConnector().close();
             return true;
@@ -39,13 +44,39 @@ public class FindUser {
 
         Bson filter = Filters.eq("login", login);
         //FindIterable findByUserLogin = connector.getMongoCollection().find(filter);
-        Document com = (Document) connector.getMongoCollection().find(filter).first();
+        Document selected = (Document) connector.getUserCollection().find(filter).first();
+        //Document selected = (Document) connector.getUserCollection().find(filter).iterator();
 
-        if (findByUserLogin(login) && com != null) {
-            return new User(com.getString("fname"), com.getString("lname"),
-                    com.getString("login"), com.getString("password"));
+        if (findByUserLogin(login) && selected != null) {
+            return new User(selected.getString("fname"), selected.getString("lname"), selected.getString("login"), selected.getString("password"));
         }
-        connector.getMongoConnector().close();
+        //connector.getMongoConnector().close();
+        return null;
+    }
+
+    //public static User getUserByLogin(String login) {
+    public static JSONObject getUserRetry(String login) {
+        Connector connector = new Connector();
+        connector.getMongoConnector();
+        connector.getMongoDatabase();
+
+        Bson filter = Filters.eq("login", login);
+        //FindIterable findByUserLogin = connector.getMongoCollection().find(filter);
+        //Document selected = (Document) connector.getUserCollection().find(filter).first();
+        //Document selected = (Document) connector.getUserCollection().find(filter).iterator();
+        for (Document res : (Iterable<Document>) connector.getUserCollection().find()) {
+            JSONObject obj = new JSONObject(res.toJson());
+            if (obj.getString("login").equalsIgnoreCase(login)) {
+                return obj;
+            }
+        }
+        /*
+        if (findByUserLogin(login) && selected != null) {
+            return new User(selected.getString("fname"), selected.getString("lname"), selected.getString("login"), selected.getString("password"));
+        }
+
+         */
+        //connector.getMongoConnector().close();
         return null;
     }
 }
