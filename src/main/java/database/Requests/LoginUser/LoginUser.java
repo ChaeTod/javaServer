@@ -9,12 +9,18 @@ import database.Requests.GetToken.GetToken;
 import database.Requests.HashPassword.HashPassword;
 import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.json.JSONObject;
 import org.mindrot.jbcrypt.BCrypt;
 import sample.User;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Objects;
 
 public class LoginUser {
+    private static SimpleDateFormat simpleDateFormat = new SimpleDateFormat("HH:mm dd/MM/yyyy");
+    private static Date currentTime = new Date();
+
     public static boolean loginUser(String login, String password) {
 
         Connector connector = new Connector();
@@ -71,8 +77,10 @@ public class LoginUser {
             //user.setToken(GenerateToken.getToken());
             Objects.requireNonNull(FindUser.getUserByLogin(login)).setToken(token.getString("token"));
             connector.getUserCollection().updateOne(input, new BasicDBObject("$set", token));
+            setAttemptTime();
             return true;
         } else {
+            setAttemptTime();
             return false;
         }
         //System.out.println(document.toJson());
@@ -81,5 +89,15 @@ public class LoginUser {
         //return false;
 
 
+    }
+
+    private static String setAttemptTime(){
+        //JSONObject res = new JSONObject(simpleDateFormat.format(currentTime));
+        String res = simpleDateFormat.format(currentTime);
+        return res.toString();
+    }
+
+    public static String getAttempTime(){
+        return setAttemptTime();
     }
 }

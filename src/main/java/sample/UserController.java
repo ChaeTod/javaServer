@@ -1,6 +1,7 @@
 package sample;
 
 import com.mongodb.util.JSON;
+import database.LoginAttemptController.LoginAttemptService;
 import database.Logs.GetLog.GetLog;
 import database.Logs.UserLog.MakeLog;
 import database.Requests.ChangePassword.ChangePassword;
@@ -17,7 +18,6 @@ import database.Requests.LoginUser.LoginUser;
 import database.Requests.LogoutUser.LogoutUser;
 import database.Requests.SignupUser.AddOneUser;
 import database.Requests.UpdateUserName.UpdateUserName;
-import net.minidev.json.parser.ParseException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.mindrot.jbcrypt.BCrypt;
@@ -31,6 +31,7 @@ import java.io.IOException;
 
 import org.springframework.http.ResponseEntity;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Objects;
@@ -44,6 +45,8 @@ public class UserController {
         DB.getMongoConnector();
         //DB.getMongoDatabase();// Make a connection to local MongoDB
     }
+
+    private static int attemptCounter = 0;
 
     @RequestMapping(method = RequestMethod.POST, value = "/signup")
     public ResponseEntity<String> signup(@RequestBody String data) {
@@ -82,31 +85,38 @@ public class UserController {
         return ResponseEntity.status(400).contentType(MediaType.APPLICATION_JSON).body(res.toString());
     }
 
+    //@CrossOrigin(origins = "http://localhost:8080/")
     @RequestMapping(method = RequestMethod.POST, value = "/login")
-    public ResponseEntity<String> login(@RequestBody String credential) {
+    public ResponseEntity<String> login(@RequestBody String credential) throws ParseException {
         JSONObject obj = new JSONObject(credential);
-
         if (obj.has("login") && obj.has("password")) {
             JSONObject res = new JSONObject();
             MakeLog localLog = new MakeLog();
-            if (obj.getString("password").isEmpty() || obj.getString("login").isEmpty()) {
-                res.put("error", "Password and login are mandatory fields");
+            if (obj.get("password").toString().isEmpty() || obj.getString("login").isEmpty()) {
+                res.put("Error!", "Password and login are mandatory fields!");
                 return ResponseEntity.status(400).contentType(MediaType.APPLICATION_JSON).body(res.toString());
             }
 
             User user = FindUser.getUserByLogin(obj.getString("login"));
 
-            if (LoginUser.loginUser(obj.getString("login"), obj.getString("password"))) {
-                assert user != null;
-                res.put("fname", user.getFname());
-                res.put("lname", user.getLname());
-                res.put("login", user.getLogin());
-                res.put("token", GetToken.getToken(user.getLogin()));
-                localLog.log(obj.getString("login"), "login"); //write changes to the log
-                return ResponseEntity.status(200).contentType(MediaType.APPLICATION_JSON).body(res.toString());
-            } else {
-                res.put("Error!", "Wrong login or password!");
+            if (!LoginAttemptService.getStatus(attemptCounter)) {
+                System.out.println("You got banned! Wait for 50 seconds!");
+                res.put("Error!", "You got banned! Wait for 50 seconds!");
                 return ResponseEntity.status(401).contentType(MediaType.APPLICATION_JSON).body(res.toString());
+            } else {
+                if (LoginUser.loginUser(obj.getString("login"), obj.get("password").toString())) {
+                    assert user != null;
+                    res.put("fname", user.getFname());
+                    res.put("lname", user.getLname());
+                    res.put("login", user.getLogin());
+                    res.put("token", GetToken.getToken(user.getLogin()));
+                    localLog.log(obj.getString("login"), "login"); //write changes to the log
+                    return ResponseEntity.status(200).contentType(MediaType.APPLICATION_JSON).body(res.toString());
+                } else {
+                    res.put("Error!", "Wrong login or password!");
+                    attemptCounter++;
+                    return ResponseEntity.status(401).contentType(MediaType.APPLICATION_JSON).body(res.toString());
+                }
             }
         }
 
@@ -114,7 +124,6 @@ public class UserController {
         res.put("Error!", "Missing login or password!");
         return ResponseEntity.status(401).contentType(MediaType.APPLICATION_JSON).body(res.toString());
     }
-
 
     @RequestMapping(method = RequestMethod.POST, value = "/logout")
     public ResponseEntity<String> logout(@RequestBody String data, @RequestParam(value = "token") String userToken) {
@@ -135,7 +144,8 @@ public class UserController {
     }
 
     @RequestMapping(method = RequestMethod.POST, value = "/changepassword")
-    public ResponseEntity<String> changePassword(@RequestBody String data, @RequestParam(value = "token") String userToken) {
+    public ResponseEntity<String> changePassword(@RequestBody String data, @RequestParam(value = "token") String
+            userToken) {
 
         JSONObject obj = new JSONObject(data);
         JSONObject res = new JSONObject();
@@ -164,7 +174,8 @@ public class UserController {
     //@RequestMapping(method = RequestMethod.DELETE, value = "/delete/{login}")
     //public ResponseEntity<String> deleteUser(@RequestHeader(name = "token") String userToken, @PathVariable String userLogin) {
     @RequestMapping(method = RequestMethod.DELETE, value = "/delete")
-    public ResponseEntity<String> deleteUser(@RequestBody String data, @RequestParam(value = "token") String userToken) {
+    public ResponseEntity<String> deleteUser(@RequestBody String data, @RequestParam(value = "token") String
+            userToken) {
         JSONObject res = new JSONObject();
         JSONObject obj = new JSONObject(data);
         User user = FindUser.getUserByLogin(obj.getString("login"));
@@ -208,28 +219,29 @@ public class UserController {
             return ResponseEntity.status(401).contentType(MediaType.APPLICATION_JSON).body("{\"Error!\":\"Invalid token\"}");
         }
     }
-/*
-    @PatchMapping(value = "update/{login}")
-    public ResponseEntity<String> updateLogin(@RequestBody String data, @RequestHeader String token, @PathVariable String login) {
-        JSONObject obj = new JSONObject(data);
-        JSONObject res = new JSONObject();
-        if (CheckToken.checkToken(token)) {
-            if (obj.has("firstName")) {
-                //findInformation(login).setFname(obj.getString("firstName"));
-                UpdateUserName.updateFirstName(login, obj.getString("fname"));
+
+    /*
+        @PatchMapping(value = "update/{login}")
+        public ResponseEntity<String> updateLogin(@RequestBody String data, @RequestHeader String token, @PathVariable String login) {
+            JSONObject obj = new JSONObject(data);
+            JSONObject res = new JSONObject();
+            if (CheckToken.checkToken(token)) {
+                if (obj.has("firstName")) {
+                    //findInformation(login).setFname(obj.getString("firstName"));
+                    UpdateUserName.updateFirstName(login, obj.getString("fname"));
+                }
+                if (obj.has("lastName")) {
+                    //findInformation(login).setFname(obj.getString("lastName"));
+                    UpdateUserName.updateLastName(login, obj.getString("lname"));
+                }
+                res.put("Success!", "Data has been changed!");
+                return ResponseEntity.status(201).contentType(MediaType.APPLICATION_JSON).body(res.toString());
+            } else {
+                res.put("Error!", "Token hasn't been found!");
+                return ResponseEntity.status(201).contentType(MediaType.APPLICATION_JSON).body(res.toString());
             }
-            if (obj.has("lastName")) {
-                //findInformation(login).setFname(obj.getString("lastName"));
-                UpdateUserName.updateLastName(login, obj.getString("lname"));
-            }
-            res.put("Success!", "Data has been changed!");
-            return ResponseEntity.status(201).contentType(MediaType.APPLICATION_JSON).body(res.toString());
-        } else {
-            res.put("Error!", "Token hasn't been found!");
-            return ResponseEntity.status(201).contentType(MediaType.APPLICATION_JSON).body(res.toString());
         }
-    }
-*/
+    */
     @RequestMapping(method = RequestMethod.POST, value = "/log")
     public ResponseEntity showLog(@RequestBody String data, @RequestParam(value = "token") String userToken) {
         JSONObject obj = new JSONObject(data);
@@ -243,7 +255,8 @@ public class UserController {
     }
 
     @RequestMapping(method = RequestMethod.POST, value = "/message/new")
-    public ResponseEntity<String> newMessage(@RequestBody String data, @RequestParam(value = "token") String userToken){
+    public ResponseEntity<String> newMessage(@RequestBody String data, @RequestParam(value = "token") String
+            userToken) {
         JSONObject obj = new JSONObject(data);
         JSONObject res = new JSONObject();
         if (CheckToken.checkToken(userToken) && FindUser.findByUserLogin(obj.getString("from")) && FindUser.findByUserLogin(obj.getString("to"))) {
@@ -257,7 +270,8 @@ public class UserController {
     }
 
     @RequestMapping(method = RequestMethod.POST, value = "/messages")
-    public ResponseEntity<String> showMessages(@RequestBody String data, @RequestParam(value = "token") String userToken){
+    public ResponseEntity<String> showMessages(@RequestBody String data, @RequestParam(value = "token") String
+            userToken) {
         JSONObject obj = new JSONObject(data);
         JSONObject res = new JSONObject();
         if (CheckToken.checkToken(userToken)) {
