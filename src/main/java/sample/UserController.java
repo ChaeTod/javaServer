@@ -54,20 +54,20 @@ public class UserController {
         System.out.println(data);
         JSONObject obj = new JSONObject(data);
         JSONObject res = new JSONObject();
-        if (!obj.getString("fname").isEmpty() && !obj.getString("lname").isEmpty() && !obj.getString("login").isEmpty() && !obj.getString("password").isEmpty()) { // vstup je ok, mame vsetky kluce
+        if (!obj.getString("fname").isEmpty() && !obj.getString("lname").isEmpty() && !obj.getString("login").isEmpty() && !obj.get("password").toString().isEmpty()) { // vstup je ok, mame vsetky kluce
             if (FindUser.findByUserLogin(obj.getString("login"))) {
                 res.put("Error!", "User with the same login already exists!");
                 return ResponseEntity.status(400).body(res.toString());
             }
 
-            String password = obj.getString("password");
+            String password = obj.get("password").toString();
             if (password.isEmpty()) {
                 res.put("Error!", "Password is a mandatory field!");
                 return ResponseEntity.status(400).body(res.toString());
             }
 
             //String hashPass = BCrypt.hashpw(obj.getString("password"), BCrypt.gensalt(12));
-            String hashPass = HashPassword.makeHash(obj.getString("password"));
+            String hashPass = HashPassword.makeHash(obj.get("password").toString());
 
             if (AddOneUser.addOneUser(obj.getString("fname"), obj.getString("lname"), obj.getString("login"), hashPass)) {
 
