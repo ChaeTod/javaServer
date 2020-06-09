@@ -102,6 +102,7 @@ public class UserController {
             if (!LoginAttemptService.getStatus(attemptCounter)) {
                 System.out.println("You got banned! Wait for 50 seconds!");
                 res.put("Error!", "You got banned! Wait for 50 seconds!");
+                attemptCounter = 0;
                 return ResponseEntity.status(401).contentType(MediaType.APPLICATION_JSON).body(res.toString());
             } else {
                 if (LoginUser.loginUser(obj.getString("login"), obj.get("password").toString())) {
@@ -136,6 +137,7 @@ public class UserController {
             user.setToken(null);
             LogoutUser.logoutUser(obj.getString("login"), userToken);
             localLog.log(obj.getString("login"), "logout");
+            attemptCounter = 0;
             return ResponseEntity.status(200).contentType(MediaType.APPLICATION_JSON).body("{Logout successful!}");
         }
         JSONObject res = new JSONObject();
@@ -153,7 +155,7 @@ public class UserController {
         User user = FindUser.getUserByLogin(obj.getString("login"));
 
         if (!data.isEmpty() && obj.has("login") && obj.has("newpassword") && obj.has("oldpassword") && user != null) {
-            if (ChangePassword.changePassword(user.getPassword(), obj.getString("newpassword"), obj.getString("login"), userToken)) {
+            if (ChangePassword.changePassword(user.getPassword(), obj.get("newpassword").toString(), obj.getString("login"), userToken)) {
                 //user.setPassword(obj.getString("newpassword"));
                 String hashPass = HashPassword.makeHash(obj.getString("newpassword"));
                 user.setPassword(hashPass);

@@ -16,7 +16,6 @@ public class HashPassword {
     static BASE64Encoder enc = new BASE64Encoder();
     static BASE64Decoder dec = new BASE64Decoder();
 
-
     public static String makeHash(String password) {
         try {
             return enc.encode(password.getBytes(DEFAULT_ENCODING));
@@ -63,6 +62,7 @@ public class HashPassword {
         }
     }
 */
+
     public static boolean checkPass(String login, String password) {
         User user = FindUser.getUserByLogin(login);
         if (user != null && FindUser.findByUserLogin(login)) {

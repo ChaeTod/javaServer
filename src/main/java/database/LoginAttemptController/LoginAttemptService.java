@@ -1,54 +1,37 @@
 package database.LoginAttemptController;
 
-import database.Requests.LoginUser.LoginUser;
-import org.springframework.cglib.core.internal.LoadingCache;
 import org.springframework.stereotype.Service;
+import sample.UserController;
 
-import java.nio.file.attribute.AclEntry;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.concurrent.TimeUnit;
 
 @Service
 public class LoginAttemptService {
 
     private static int MAX_ATTEMPT = 3;
-/*
-    public void loginFailed(String key) {
-        int attempts = 0;
+
+    private static boolean isBanned(int attempts) {
         try {
-            attempts = attemptsCache.get(key);
-        } catch (ExecutionException e) {
-            attempts = 0;
+            return attempts >= MAX_ATTEMPT;
+        } catch (Exception e) {
+            return false;
         }
-        attempts++;
-        attemptsCache.put(key, attempts);
-    }
-
- */
-
-    private static boolean isBanned(int attempts){
-       try {
-           return attempts >= MAX_ATTEMPT;
-       } catch (Exception e){
-           return false;
-       }
     }
 
     public static boolean getStatus(int attempts) throws ParseException {
-        String attemptTime = LoginUser.getAttempTime();
-        if (isBanned(attempts)){
-            String formatter = new SimpleDateFormat("HH:mm dd/MM/yyyy").format(Calendar.getInstance().getTime());
-            SimpleDateFormat current = new SimpleDateFormat("HH:mm dd/MM/yyyy");
-            Date date = current.parse(attemptTime);
-            if (Calendar.getInstance().getTime().after(date)){
-                System.out.println("You got banned! Wait for 50 seconds!");
+        if (isBanned(attempts) || BanTimer.checkIsTimerStarted()) {
+            System.out.println("You have been banned for 50 seconds!");
+            if (BanTimer.checkIsTimerOver() || !BanTimer.checkIsTimerStarted()){
+                new BanTimer();
+                return false;
+            } else {
+                BanTimer.setIsTimeOver(false);
+                BanTimer.setIsTimeStarted(true);
                 return false;
             }
+        } else {
+            System.out.println("Ban is over!");
             return true;
         }
-        return true;
     }
 }
