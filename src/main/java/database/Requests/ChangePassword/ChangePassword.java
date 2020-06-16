@@ -7,6 +7,7 @@ import database.Requests.FindUser.FindUser;
 import database.Requests.GetToken.GetToken;
 import database.Requests.HashPassword.HashPassword;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.mindrot.jbcrypt.BCrypt;
 import sample.User;
 
@@ -27,9 +28,15 @@ public class ChangePassword {
         FindIterable<Document> res = connector.getUserCollection().find(obj);
         User user = FindUser.getUserByLogin(login);
 
-        if (user != null && user.getLogin().equalsIgnoreCase(obj.getString("login")) && HashPassword.checkChange(login, obj.getString("oldpassword")) && Objects.equals(GetToken.getToken(user.getLogin()), token)){
+        if (user != null && user.getLogin().equalsIgnoreCase(obj.getString("login")) && /*HashPassword.checkChange(login, obj.get("oldpassword").toString()) && */ Objects.equals(GetToken.getToken(user.getLogin()), token)){
             String hashPass = HashPassword.makeHash(newpassword);
-            connector.getUserCollection().updateOne(obj, new BasicDBObject("$set", new BasicDBObject("newpassword", hashPass)));
+
+            Bson filter = new Document("login", login);
+            Bson newValue = new Document("password", HashPassword.makeHash(hashPass));
+            Bson updateOperationDocument = new Document("$set", newValue);
+            connector.getUserCollection().updateOne(filter, updateOperationDocument);
+
+            //connector.getUserCollection().updateOne(obj, new BasicDBObject("$set", new BasicDBObject("newpassword", hashPass)));
             //connector.getMongoConnector().close();
             return true;
         } else {

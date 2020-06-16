@@ -85,7 +85,7 @@ public class UserController {
         return ResponseEntity.status(400).contentType(MediaType.APPLICATION_JSON).body(res.toString());
     }
 
-    //@CrossOrigin(origins = "http://localhost:8080/")
+    //@CrossOrigin(origins = "http://localhost:8080/")  not in use
     @RequestMapping(method = RequestMethod.POST, value = "/login")
     public ResponseEntity<String> login(@RequestBody String credential) throws ParseException {
         JSONObject obj = new JSONObject(credential);
@@ -120,7 +120,6 @@ public class UserController {
                 }
             }
         }
-
         JSONObject res = new JSONObject();
         res.put("Error!", "Missing login or password!");
         return ResponseEntity.status(401).contentType(MediaType.APPLICATION_JSON).body(res.toString());
@@ -244,6 +243,7 @@ public class UserController {
             }
         }
     */
+
     @RequestMapping(method = RequestMethod.POST, value = "/log")
     public ResponseEntity showLog(@RequestBody String data, @RequestParam(value = "token") String userToken) {
         JSONObject obj = new JSONObject(data);
@@ -285,12 +285,9 @@ public class UserController {
         }
     }
 
-
-
     /* +++++++++++ */
     /* update user */
     /* +++++++++++ */
-
 
 /*
     /*

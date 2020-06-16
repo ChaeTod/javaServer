@@ -80,10 +80,8 @@ public class HashPassword {
         if (user != null && FindUser.findByUserLogin(login)) {
             System.out.println(user.getPassword());
             //String temp = decode(user.getPassword());
-            if (user.getPassword().equals(password))
-                return true;
-            else
-                return false;
+            // Very dangerous place!
+            return password != null && (decode(user.getPassword()).equals(makeHash(password)));
         }
         return false;
     }
