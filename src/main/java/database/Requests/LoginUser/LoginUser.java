@@ -67,8 +67,11 @@ public class LoginUser {
         connector.getMongoConnector().close();
         return false;
 */
-        String temp = user.getPassword();
         //assert user != null;
+        if (user == null)
+            return false;
+
+        String temp = user.getPassword();
         if (FindUser.findByUserLogin(login) &&  HashPassword.checkPass(login, password) /* && BCrypt.checkpw(password, user.getPassword())*/) {
             BasicDBObject token = new BasicDBObject();
             token.append("token", GenerateToken.getToken());

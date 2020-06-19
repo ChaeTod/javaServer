@@ -22,13 +22,13 @@ public class DeleteUser {
             if (cursor.iterator().hasNext()) {
                 connector.getUserCollection().deleteOne(obj);
             } else {
-                connector.getMongoConnector().close();
+                //connector.getMongoConnector().close();
                 return false;
             }
-            connector.getMongoConnector().close();
+            //connector.getMongoConnector().close();
             return true;
         }
-        connector.getMongoConnector().close();
+        //connector.getMongoConnector().close();
         return false;
     }
 }
